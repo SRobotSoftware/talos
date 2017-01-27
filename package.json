@@ -1,0 +1,16 @@
+{
+  "name": "talos",
+  "version": "0.0.1",
+  "description": "Artificial Life Simulation",
+  "main": "talos.js",
+  "repository": "git@github.com:Zmixon/talos.git",
+  "author": "Zachary Mixon <zmixon@vynyl.com>",
+  "license": "MIT",
+  "dependencies": {
+    "eslint": "^3.14.1",
+    "eslint-config-vynyl": "^3.1.1"
+  },
+  "eslintConfig": {
+    "extends": "vynyl"
+  }
+}
