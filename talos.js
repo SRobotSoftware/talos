@@ -169,18 +169,6 @@ function Grid(rows, columns) {
   return this;
 }
 
-const grid = new Grid(10, 10);
-
-console.groupCollapsed('Grid Testing');
-console.log(grid.area);
-console.log(grid.isEmpty(0, 0));
-
-grid.setBoundary(entities.wall);
-
-console.log(grid.area);
-console.log(grid.isEmpty(1, 1));
-console.groupEnd('Grid Testing');
-
 
 /* Seed Entities */
 
@@ -206,12 +194,6 @@ function seedEntities(targetGrid, entity, numberOfEntities) {
   }
   return true;
 }
-
-console.groupCollapsed('Entity Seeding');
-seedEntities(grid, entities.plant, 5);
-seedEntities(grid, entities.animal, 5);
-console.log('Found Entities on Grid: %o', grid.getAllEntities(['wall']));
-console.groupEnd('Entity Seeding');
 
 
 /* IT LIVES */
@@ -281,6 +263,26 @@ function Simulation(grid, entities) {
 
   return this;
 }
+
+
+const grid = new Grid(20, 20);
+
+console.groupCollapsed('Grid Testing');
+console.log(grid.area);
+console.log(grid.isEmpty(0, 0));
+
+grid.setBoundary(entities.wall);
+
+console.log(grid.area);
+console.log(grid.isEmpty(1, 1));
+console.groupEnd('Grid Testing');
+
+
+console.groupCollapsed('Entity Seeding');
+seedEntities(grid, entities.plant, 40);
+seedEntities(grid, entities.animal, 10);
+console.log('Found Entities on Grid: %o', grid.getAllEntities(['wall']));
+console.groupEnd('Entity Seeding');
 
 
 const mySimulation = new Simulation(grid, entities);
