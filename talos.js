@@ -10,6 +10,53 @@
 
 
 
+/* Brains and junk */
+
+const entities = {
+  animal: {
+    name: 'animal',
+    food: 'plant',
+    life: 5,
+    age: 0,
+    logic: function (grid, x, y) {
+      let output = [];
+      console.groupCollapsed('Animal Thoughts');
+      // Look for food
+      const foodSources = grid.getAdjacent(x, y).filter(cell => cell.hasOwnProperty('contains') && cell.contains !== null && cell.contains.name === this.food);
+      if (foodSources.length) {
+        this.life++;
+        console.info('YAY FOOD: %i', this.life);
+      }
+      if (this.life) {
+        // Think about moving
+        // filter out other animals, walls, and plants
+        const adjacent = grid.getAdjacent(x, y).filter(cell => !cell.hasOwnProperty('contains') || cell.contains === null);
+        if (adjacent.length) {
+          console.info('I CAN MOVE TO: %o', adjacent);
+          const destination = adjacent[Math.floor(Math.random() * adjacent.length)];
+          console.info('GONNA MOVE TO: %o', destination);
+          output = ['MOVE', destination.x, destination.y];
+          this.life--;
+        }
+        this.age++;
+      } else {
+        console.info('I HAVE DIED');
+        this.name = 'dead';
+      }
+      console.groupEnd('Animal Thoughts');
+      return output.length ? output : ['NOP'];
+    },
+  },
+
+  plant: {
+    name: 'plant',
+  },
+
+  wall: {
+    name: 'wall',
+  },
+};
+
 
 /* Grid functions TODO: turn into class */
 
@@ -19,6 +66,7 @@ function Grid(rows, columns) {
     .map(() => new Array(columns)
       .fill(null, 0, columns)
       .map(() => ({})));
+  this.pageGrid = document.getElementsByClassName('js-grid')[0];
 
 
   this.isEmpty = (x, y) => {
@@ -36,6 +84,20 @@ function Grid(rows, columns) {
     ), 0);
   };
 
+  this.getAdjacent = (x, y) => {
+    const adjacentArray = [
+      this.area[Math.max(y - 1, 0)][Math.max(x - 1, 0)],
+      this.area[Math.max(y - 1, 0)][x],
+      this.area[Math.max(y - 1, 0)][Math.min(x + 1, this.area[0].length - 1)],
+      this.area[y][Math.max(x - 1, 0)],
+      this.area[y][Math.min(x + 1, this.area[0].length - 1)],
+      this.area[Math.min(y + 1, this.area.length - 1)][Math.max(x - 1, 0)],
+      this.area[Math.min(y + 1, this.area.length - 1)][x],
+      this.area[Math.min(y + 1, this.area.length - 1)][Math.min(x + 1, this.area[0].length - 1)],
+    ];
+    return adjacentArray;
+  };
+
   this.getAllEmpty = () => {
     const availableSpaces = [];
     this.area.forEach(row => {
@@ -46,6 +108,19 @@ function Grid(rows, columns) {
       });
     });
     return availableSpaces;
+  };
+
+  this.getAllEntities = excludes => {
+    if (!excludes) excludes = [];
+    const availableEntities = [];
+    this.area.forEach(row => {
+      row.forEach(cell => {
+        if (cell.hasOwnProperty('contains') && cell.contains !== null && !excludes.some(e => cell.contains.name === e)) {
+          availableEntities.push(cell);
+        }
+      });
+    });
+    return availableEntities;
   };
 
   this.getRandomEmpty = () => {
@@ -60,24 +135,38 @@ function Grid(rows, columns) {
     return result;
   };
 
+  this.setBoundary = entity => {
+    this.area = this.area.map((row, rowIndex) => row.map((cell, cellIndex) => {
+      cell.x = cellIndex;
+      cell.y = rowIndex;
+      if (
+        rowIndex === 0 ||
+        rowIndex === this.area.length - 1 ||
+        cellIndex === 0 ||
+        cellIndex === row.length - 1
+      ) {
+        cell.contains = entity;
+      }
+      return cell;
+    }));
+  };
+
+  this.render = () => {
+    while (this.pageGrid.hasChildNodes()) {
+      this.pageGrid.removeChild(this.pageGrid.lastChild);
+    }
+    this.area.forEach(row => {
+      const pageGridRow = document.createElement('tr');
+      row.forEach(cell => {
+        const pageGridCell = document.createElement('td');
+        pageGridCell.className = `grid__cell ${cell.hasOwnProperty('contains') && cell.contains !== null ? cell.contains.name : null}`;
+        pageGridRow.appendChild(pageGridCell);
+      });
+      this.pageGrid.appendChild(pageGridRow);
+    });
+  };
 
   return this;
-}
-
-function setBoundary(grid) {
-  grid.area = grid.area.map((row, rowIndex) => row.map((cell, cellIndex) => {
-    cell.x = cellIndex;
-    cell.y = rowIndex;
-    if (
-      rowIndex === 0 ||
-      rowIndex === grid.area.length - 1 ||
-      cellIndex === 0 ||
-      cellIndex === row.length - 1
-    ) {
-      cell.contains = 'wall';
-    }
-    return cell;
-  }));
 }
 
 const grid = new Grid(10, 10);
@@ -86,13 +175,15 @@ console.groupCollapsed('Grid Testing');
 console.log(grid.area);
 console.log(grid.isEmpty(0, 0));
 
-setBoundary(grid);
+grid.setBoundary(entities.wall);
 
 console.log(grid.area);
 console.log(grid.isEmpty(1, 1));
 console.groupEnd('Grid Testing');
 
-// Add a few random plants
+
+/* Seed Entities */
+
 function seedEntities(targetGrid, entity, numberOfEntities) {
   const availableSpaces = targetGrid.getEmptyLength();
 
@@ -110,30 +201,88 @@ function seedEntities(targetGrid, entity, numberOfEntities) {
 
   while (numberOfEntities--) {
     const plot = getPlot();
-    plot.contains = entity;
+    plot.contains = Object.assign({}, entity);
     placedEntities.push(plot);
   }
   return true;
 }
 
-seedEntities(grid, 'plant', 5);
-seedEntities(grid, 'animal', 5);
+console.groupCollapsed('Entity Seeding');
+seedEntities(grid, entities.plant, 5);
+seedEntities(grid, entities.animal, 5);
+console.log('Found Entities on Grid: %o', grid.getAllEntities(['wall']));
+console.groupEnd('Entity Seeding');
 
 
+/* IT LIVES */
+
+/*
+** So, the idea here will be to have a Simulate function
+** that will run through all entities in the grid and Simulate
+** some very simple AI. We can then use a Step function to cycle
+** through a Simulation "tick" with lots of logging information
+** or we can run a "living" simulation that will run a "tick" every
+** second or so.
+*/
+
+/* Utility sleep function to make `live` easier to display */
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function Simulation(grid, entities) {
+  // Grid is a preset grid to simulate on
+  // Entities is an array of entity objects that contain a name, and logic function
+  this.grid = grid;
+  this.entities = entities;
+  this.ticks = 0;
+
+  this.tick = () => {
+    console.groupCollapsed('Simulation Tick: %i', this.ticks);
+    const currentEntities = this.grid.getAllEntities(['wall']);
+    currentEntities.forEach(entity => {
+      console.log('Entity: %s found: %o', entity.contains.name, entity);
+      if (entity.contains.hasOwnProperty('logic')) {
+        console.log('Logic Found');
+        const result = entity.contains.logic(this.grid, entity.x, entity.y);
+        console.log(result);
+        switch (result[0]) {
+          case 'MOVE':
+            this.grid.area[result[2]][result[1]].contains = entity.contains;
+            this.grid.area[entity.y][entity.x].contains = null;
+            break;
+          default:
+            break;
+        }
+      }
+    });
+    console.groupEnd('Simulation Tick: %i', this.ticks);
+    this.grid.render();
+    this.renderStats();
+    this.ticks++;
+  };
+
+  this.live = async steps => {
+    while (steps--) {
+      this.tick();
+      if (this.grid.getAllEntities(['wall', 'plant']).filter(e => e.contains.name === 'animal').length) await sleep(500);
+      else steps = 0;
+    }
+  };
+
+  this.renderStats = () => {
+    const tickCounter = document.getElementsByClassName('js-ticks')[0];
+    tickCounter.innerHTML = this.ticks;
+  };
+
+  this.grid.render();
+  this.renderStats();
+
+  return this;
+}
 
 
-/* Page Rendering stuff */
-
-console.group('HTML Doc Testing');
-const pageGrid = document.getElementsByClassName('js-grid')[0];
-console.log('pageGrid found: %o', pageGrid);
-grid.area.forEach(row => {
-  const pageGridRow = document.createElement('tr');
-  row.forEach(cell => {
-    const pageGridCell = document.createElement('td');
-    pageGridCell.className = `grid__cell ${cell.contains}`;
-    pageGridRow.appendChild(pageGridCell);
-  });
-  pageGrid.appendChild(pageGridRow);
-});
-console.groupEnd('HTML Doc Testing');
+const mySimulation = new Simulation(grid, entities);
+// 30 second simulation
+mySimulation.live(60);
