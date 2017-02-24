@@ -1,0 +1,29 @@
+.grid-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*.grid {
+
+}*/
+
+.grid__cell {
+  width: 2vh;
+  height: 2vh;
+  background-color: #aaa;
+}
+
+.grid .wall {
+  background-color: black;
+}
+
+.grid .animal {
+  background-color: yellow;
+}
+
+.grid .plant {
+  background-color: green;
+}
