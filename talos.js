@@ -306,6 +306,8 @@ function Simulation(grid, entities) {
 }
 
 
+/* Put everything to use */
+
 const grid = new Grid(20, 20);
 
 console.groupCollapsed('Grid Testing');
