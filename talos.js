@@ -4,6 +4,9 @@
 /* eslint no-console: 0 */
 /* eslint no-plusplus: 0 */
 
+/* eslint no-confusing-arrow: 0 */
+/* eslint no-nested-ternary: 0 */
+
 /* For some reason `document` isn't recognized as a global */
 
 /* global document */
@@ -16,18 +19,21 @@ const entities = {
   animal: {
     name: 'animal',
     food: 'plant',
-    life: 5,
+    life: 10,
+    alive: true,
     age: 0,
-    logic: function (grid, x, y) {
-      let output = [];
+    logic: (grid, self, x, y) => {
+      if (!self.alive) return;
       console.groupCollapsed('Animal Thoughts');
       // Look for food
-      const foodSources = grid.getAdjacent(x, y).filter(cell => cell.hasOwnProperty('contains') && cell.contains !== null && cell.contains.name === this.food);
+      const foodSources = grid.getAdjacent(x, y).filter(cell => cell.hasOwnProperty('contains') && cell.contains !== null && cell.contains.name === self.food);
       if (foodSources.length) {
-        this.life++;
-        console.info('YAY FOOD: %i', this.life);
+        console.info('YAY FOOD: %i', self.life);
+        const consume = foodSources[Math.floor(Math.random() * foodSources.length)];
+        self.life += consume.contains.alive ? 2 : 1;
+        grid.area[consume.y][consume.x].contains = null;
       }
-      if (this.life) {
+      if (self.life) {
         // Think about moving
         // filter out other animals, walls, and plants
         const adjacent = grid.getAdjacent(x, y).filter(cell => !cell.hasOwnProperty('contains') || cell.contains === null);
@@ -35,21 +41,45 @@ const entities = {
           console.info('I CAN MOVE TO: %o', adjacent);
           const destination = adjacent[Math.floor(Math.random() * adjacent.length)];
           console.info('GONNA MOVE TO: %o', destination);
-          output = ['MOVE', destination.x, destination.y];
-          this.life--;
+          grid.area[destination.y][destination.x].contains = self;
+          grid.area[y][x].contains = null;
+          self.life--;
         }
-        this.age++;
+        self.age++;
       } else {
         console.info('I HAVE DIED');
-        this.name = 'dead';
+        self.alive = false;
       }
       console.groupEnd('Animal Thoughts');
-      return output.length ? output : ['NOP'];
     },
   },
 
   plant: {
     name: 'plant',
+    age: 0,
+    alive: true,
+    logic: (grid, self, x, y) => {
+      self.age++;
+      if (!self.alive) {
+        // Decay after 3-15 ticks
+        if (self.age >= Math.floor(Math.random() * 12) + 3) grid.area[y][x].contains = null;
+        return;
+      }
+      // Every 5 ticks, grow
+      if (self.age % 5 === 0) {
+        const availableCells = grid.getAdjacentEmpty(x, y);
+        if (availableCells.length) {
+          const growth = Object.assign({}, self);
+          growth.age = 0;
+          availableCells[Math.floor(Math.random() * availableCells.length)].contains = growth;
+        }
+      }
+      // Die after 5-15 ticks
+      if (self.age >= Math.floor(Math.random() * 10) + 5) {
+        self.alive = false;
+        self.age = 0;
+      }
+    },
   },
 
   wall: {
@@ -96,6 +126,20 @@ function Grid(rows, columns) {
       this.area[Math.min(y + 1, this.area.length - 1)][Math.min(x + 1, this.area[0].length - 1)],
     ];
     return adjacentArray;
+  };
+
+  this.getAdjacentEmpty = (x, y) => {
+    const adjacentArray = [
+      this.area[Math.max(y - 1, 0)][Math.max(x - 1, 0)],
+      this.area[Math.max(y - 1, 0)][x],
+      this.area[Math.max(y - 1, 0)][Math.min(x + 1, this.area[0].length - 1)],
+      this.area[y][Math.max(x - 1, 0)],
+      this.area[y][Math.min(x + 1, this.area[0].length - 1)],
+      this.area[Math.min(y + 1, this.area.length - 1)][Math.max(x - 1, 0)],
+      this.area[Math.min(y + 1, this.area.length - 1)][x],
+      this.area[Math.min(y + 1, this.area.length - 1)][Math.min(x + 1, this.area[0].length - 1)],
+    ];
+    return adjacentArray.filter(cell => !cell.hasOwnProperty('contains') || cell.contains === null);
   };
 
   this.getAllEmpty = () => {
@@ -159,40 +203,38 @@ function Grid(rows, columns) {
       const pageGridRow = document.createElement('tr');
       row.forEach(cell => {
         const pageGridCell = document.createElement('td');
-        pageGridCell.className = `grid__cell ${cell.hasOwnProperty('contains') && cell.contains !== null ? cell.contains.name : null}`;
+        pageGridCell.className = `grid__cell ${cell.hasOwnProperty('contains') && cell.contains !== null ? `${cell.contains.name} ${cell.contains.alive ? 'alive' : 'dead'}` : ''}`;
         pageGridRow.appendChild(pageGridCell);
       });
       this.pageGrid.appendChild(pageGridRow);
     });
   };
 
+  this.getEmptyPlot = placedEntities => {
+    const plot = this.getRandomEmpty();
+    return (placedEntities.some(planted => planted.x === plot.x && planted.y === plot.y)) ? this.getEmptyPlot() : plot;
+  };
+
+  this.seedEntities = (entity, numberOfEntities) => {
+    const availableSpaces = this.getEmptyLength();
+
+    if (numberOfEntities > availableSpaces) {
+      console.warn('Error: seedEntities: Not enough available space in grid: Entities Requested: %i, Spaces Available: %i', numberOfEntities, availableSpaces);
+      return false;
+    }
+
+    const placedEntities = [];
+
+
+    while (numberOfEntities--) {
+      const plot = this.getEmptyPlot(placedEntities);
+      plot.contains = Object.assign({}, entity);
+      placedEntities.push(plot);
+    }
+    return true;
+  };
+
   return this;
-}
-
-
-/* Seed Entities */
-
-function seedEntities(targetGrid, entity, numberOfEntities) {
-  const availableSpaces = targetGrid.getEmptyLength();
-
-  if (numberOfEntities > availableSpaces) {
-    console.warn('Error: seedEntities: Not enough available space in grid: Entities Requested: %i, Spaces Available: %i', numberOfEntities, availableSpaces);
-    return false;
-  }
-
-  const placedEntities = [];
-
-  function getPlot() {
-    const plot = targetGrid.getRandomEmpty();
-    return (placedEntities.some(planted => planted.x === plot.x && planted.y === plot.y)) ? getPlot() : plot;
-  }
-
-  while (numberOfEntities--) {
-    const plot = getPlot();
-    plot.contains = Object.assign({}, entity);
-    placedEntities.push(plot);
-  }
-  return true;
 }
 
 
@@ -218,25 +260,20 @@ function Simulation(grid, entities) {
   // Entities is an array of entity objects that contain a name, and logic function
   this.grid = grid;
   this.entities = entities;
-  this.ticks = 0;
+  this.ticks = 1;
 
   this.tick = () => {
     console.groupCollapsed('Simulation Tick: %i', this.ticks);
-    const currentEntities = this.grid.getAllEntities(['wall']);
+    const currentEntities = this.grid
+      .getAllEntities(['wall'])
+      // no-nested-ternary and no-confusing-arrow can bite me. It's a shorthanded property sort.
+      .sort((a, b) => (a.contains.name < b.contains.name) ? -1 : (a.contains.name > b.contains.name) ? 1 : 0);
     currentEntities.forEach(entity => {
+      if (entity.contains === null) return console.info('ENTITY MISSING');
       console.log('Entity: %s found: %o', entity.contains.name, entity);
       if (entity.contains.hasOwnProperty('logic')) {
         console.log('Logic Found');
-        const result = entity.contains.logic(this.grid, entity.x, entity.y);
-        console.log(result);
-        switch (result[0]) {
-          case 'MOVE':
-            this.grid.area[result[2]][result[1]].contains = entity.contains;
-            this.grid.area[entity.y][entity.x].contains = null;
-            break;
-          default:
-            break;
-        }
+        entity.contains.logic(this.grid, entity.contains, entity.x, entity.y);
       }
     });
     console.groupEnd('Simulation Tick: %i', this.ticks);
@@ -248,8 +285,11 @@ function Simulation(grid, entities) {
   this.live = async steps => {
     while (steps--) {
       this.tick();
-      if (this.grid.getAllEntities(['wall', 'plant']).filter(e => e.contains.name === 'animal').length) await sleep(500);
-      else steps = 0;
+      if (this.grid.getAllEntities(['wall', 'plant']).filter(e => e.contains.alive).length) await sleep(50);
+      else {
+        steps = 0;
+        console.warn('Simulation has ended after %i ticks. All entities are dead.', --this.ticks);
+      }
     }
   };
 
@@ -279,12 +319,12 @@ console.groupEnd('Grid Testing');
 
 
 console.groupCollapsed('Entity Seeding');
-seedEntities(grid, entities.plant, 40);
-seedEntities(grid, entities.animal, 10);
+grid.seedEntities(entities.plant, 50);
+grid.seedEntities(entities.animal, 10);
 console.log('Found Entities on Grid: %o', grid.getAllEntities(['wall']));
 console.groupEnd('Entity Seeding');
 
 
 const mySimulation = new Simulation(grid, entities);
-// 30 second simulation
-mySimulation.live(60);
+// ~5 second simulation - Each tick is 50ms
+mySimulation.live(100);

@@ -25,10 +25,14 @@
   background-color: yellow;
 }
 
-.grid .dead {
+.grid .animal.dead {
   background-color: brown;
 }
 
 .grid .plant {
   background-color: green;
+}
+
+.grid .plant.dead {
+  background-color: orange;
 }
