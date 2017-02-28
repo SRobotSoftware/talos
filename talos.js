@@ -68,11 +68,7 @@ const entities = {
       // Every 5 ticks, grow
       if (self.age % 5 === 0) {
         const availableCells = grid.getAdjacentEmpty(x, y);
-        if (availableCells.length) {
-          const growth = Object.assign({}, self);
-          growth.age = 0;
-          availableCells[Math.floor(Math.random() * availableCells.length)].contains = growth;
-        }
+        if (availableCells.length) availableCells[Math.floor(Math.random() * availableCells.length)].contains = Object.assign({}, entities.plant);
       }
       // Die after 5-15 ticks
       if (self.age >= Math.floor(Math.random() * 10) + 5) {
