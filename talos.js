@@ -13,6 +13,17 @@
 
 
 
+/* Utility Functions */
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function randomBetween(max = 1, min = 0) {
+  return Math.floor(Math.random() * max) + min;
+}
+
+
 /* Brains and junk */
 
 const entities = {
@@ -29,7 +40,7 @@ const entities = {
       const foodSources = grid.getAdjacent(x, y).filter(cell => cell.hasOwnProperty('contains') && cell.contains !== null && cell.contains.name === self.food);
       if (foodSources.length) {
         console.info('YAY FOOD: %i', self.life);
-        const consume = foodSources[Math.floor(Math.random() * foodSources.length)];
+        const consume = foodSources[randomBetween(foodSources.length)];
         self.life += consume.contains.alive ? 2 : 1;
         grid.area[consume.y][consume.x].contains = null;
       }
@@ -39,7 +50,7 @@ const entities = {
         const adjacent = grid.getAdjacent(x, y).filter(cell => !cell.hasOwnProperty('contains') || cell.contains === null);
         if (adjacent.length) {
           console.info('I CAN MOVE TO: %o', adjacent);
-          const destination = adjacent[Math.floor(Math.random() * adjacent.length)];
+          const destination = adjacent[randomBetween(adjacent.length)];
           console.info('GONNA MOVE TO: %o', destination);
           grid.area[destination.y][destination.x].contains = self;
           grid.area[y][x].contains = null;
@@ -62,16 +73,16 @@ const entities = {
       self.age++;
       if (!self.alive) {
         // Decay after 3-15 ticks
-        if (self.age >= Math.floor(Math.random() * 12) + 3) grid.area[y][x].contains = null;
+        if (self.age >= randomBetween(12, 3)) grid.area[y][x].contains = null;
         return;
       }
       // Every 5 ticks, grow
       if (self.age % 5 === 0) {
         const availableCells = grid.getAdjacentEmpty(x, y);
-        if (availableCells.length) availableCells[Math.floor(Math.random() * availableCells.length)].contains = Object.assign({}, entities.plant);
+        if (availableCells.length) availableCells[randomBetween(availableCells.length)].contains = Object.assign({}, entities.plant);
       }
       // Die after 5-15 ticks
-      if (self.age >= Math.floor(Math.random() * 10) + 5) {
+      if (self.age >= randomBetween(10, 5)) {
         self.alive = false;
         self.age = 0;
       }
@@ -170,7 +181,7 @@ function Grid(rows, columns) {
 
     if (availableSpaces.length === 0) return false;
 
-    const result = availableSpaces[Math.floor(Math.random() * availableSpaces.length)];
+    const result = availableSpaces[randomBetween(availableSpaces.length)];
 
     return result;
   };
@@ -244,12 +255,6 @@ function Grid(rows, columns) {
 ** or we can run a "living" simulation that will run a "tick" every
 ** second or so.
 */
-
-/* Utility sleep function to make `live` easier to display */
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 function Simulation(grid, entities) {
   // Grid is a preset grid to simulate on
