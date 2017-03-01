@@ -6,7 +6,7 @@
   "repository": "git@github.com:Zmixon/talos.git",
   "author": "Zachary Mixon <zmixon@vynyl.com>",
   "license": "MIT",
-  "dependencies": {
+  "devDependencies": {
     "eslint": "^3.14.1",
     "eslint-config-vynyl": "^3.1.1"
   },
