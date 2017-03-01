@@ -322,8 +322,8 @@ console.groupEnd('Grid Testing');
 
 
 console.groupCollapsed('Entity Seeding');
-grid.seedEntities(entities.plant, 50);
 grid.seedEntities(entities.animal, 10);
+grid.seedEntities(entities.plant, 50);
 console.log('Found Entities on Grid: %o', grid.getAllEntities(['wall']));
 console.groupEnd('Entity Seeding');
 
