@@ -7,6 +7,29 @@
   flex-direction: column;
 }
 
+.stats {
+  display: flex;
+  flex-direction: column;
+}
+
+.stats__live {
+  display: flex;
+  justify-content: space-around;
+  width: 100vw;
+}
+
+.stats__dead {
+  display: flex;
+  justify-content: space-around;
+  width: 100vw;
+}
+
+.stats__total {
+  display: flex;
+  justify-content: space-around;
+  width: 100vw;
+}
+
 .grid__cell {
   width: 2vh;
   height: 2vh;
@@ -19,6 +42,8 @@
 
 .grid .Herbivore {
   background-color: yellow;
+  text-align: center;
+  font-size: 0.8rem;
 }
 
 .grid .Herbivore.dead {

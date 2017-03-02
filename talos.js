@@ -249,9 +249,64 @@ class Grid {
       row.forEach(cell => {
         const pageGridCell = document.createElement('td');
         pageGridCell.className = `grid__cell ${cell.hasOwnProperty('contains') && cell.contains !== null ? `${cell.contains.name} ${cell.contains.alive ? 'alive' : 'dead'}` : ''}`;
+        if (cell.hasOwnProperty('contains') &&
+        cell.contains !== null &&
+        cell.contains.hasOwnProperty('name') &&
+        cell.contains.name === 'Herbivore' &&
+        cell.contains.alive) pageGridCell.innerText = cell.contains.life;
         pageGridRow.appendChild(pageGridCell);
       });
+      // live
       this.pageGrid.appendChild(pageGridRow);
+      const entityStatsLive = this.getAllEntities().reduce((output, entity) => {
+        if (output.hasOwnProperty(entity.contains.name) && entity.contains.alive) output[entity.contains.name]++;
+        else if (entity.contains.alive) output[entity.contains.name] = 1;
+        else return output;
+        output.Total++;
+        return output;
+      }, { Total: 0 });
+      const liveStats = document.getElementsByClassName('js-stats__live')[0];
+      while (liveStats.hasChildNodes()) {
+        liveStats.removeChild(liveStats.lastChild);
+      }
+      Object.keys(entityStatsLive).forEach(stat => {
+        const statDiv = document.createElement('div');
+        statDiv.innerText = `${stat}: ${entityStatsLive[stat]}`;
+        liveStats.appendChild(statDiv);
+      });
+      // dead
+      const entityStatsDead = this.getAllEntities().reduce((output, entity) => {
+        if (output.hasOwnProperty(entity.contains.name) && !entity.contains.alive && entity.contains.name !== 'Wall') output[entity.contains.name]++;
+        else if (!entity.contains.alive && entity.contains.name !== 'Wall') output[entity.contains.name] = 1;
+        else return output;
+        output.Total++;
+        return output;
+      }, { Total: 0 });
+      const deadStats = document.getElementsByClassName('js-stats__dead')[0];
+      while (deadStats.hasChildNodes()) {
+        deadStats.removeChild(deadStats.lastChild);
+      }
+      Object.keys(entityStatsDead).forEach(stat => {
+        const statDiv = document.createElement('div');
+        statDiv.innerText = `${stat}: ${entityStatsDead[stat]}`;
+        deadStats.appendChild(statDiv);
+      });
+      // total
+      const entityStatsTotal = this.getAllEntities().reduce((output, entity) => {
+        if (output.hasOwnProperty(entity.contains.name)) output[entity.contains.name]++;
+        else output[entity.contains.name] = 1;
+        output.Total++;
+        return output;
+      }, { Total: 0 });
+      const totalStats = document.getElementsByClassName('js-stats__total')[0];
+      while (totalStats.hasChildNodes()) {
+        totalStats.removeChild(totalStats.lastChild);
+      }
+      Object.keys(entityStatsTotal).forEach(stat => {
+        const statDiv = document.createElement('div');
+        statDiv.innerText = `${stat}: ${entityStatsTotal[stat]}`;
+        totalStats.appendChild(statDiv);
+      });
     });
   }
 
@@ -357,7 +412,7 @@ console.groupEnd('Grid Testing');
 
 console.groupCollapsed('Entity Seeding');
 grid.seedEntities('Herbivore', 20, 10);
-grid.seedEntities('Plant', 100);
+grid.seedEntities('Plant', 150);
 console.log('Found Entities on Grid: %o', grid.getAllEntities(['Wall']));
 console.groupEnd('Entity Seeding');
 
