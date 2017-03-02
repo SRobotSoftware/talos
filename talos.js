@@ -15,10 +15,19 @@
 
 /* Utility Functions */
 
+/**
+ * Sleep function that effectively pauses the code for ms milliseconds.
+ * @param {number} ms Number of milliseconds to sleep
+ */
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Function to choose a number psuedorandomly between minimum and maximum.
+ * @param {number} max Maximum - inclusive
+ * @param {number} min Minimum - inclusive
+ */
 function randomBetween(max = 1, min = 0) {
   return Math.floor(Math.random() * max) + min;
 }
@@ -26,25 +35,74 @@ function randomBetween(max = 1, min = 0) {
 
 /* Brains and junk */
 
-const entities = {
-  animal: {
-    name: 'animal',
-    food: 'plant',
-    life: 10,
-    alive: true,
-    age: 0,
-    logic: (grid, self, x, y) => {
-      if (!self.alive) return;
+class Entity {
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+class Terrain extends Entity {}
+
+class LivingEntity extends Entity {
+  constructor() {
+    super();
+    this.age = 0;
+    this.alive = true;
+    this.logic = () => {};
+  }
+}
+
+class Plant extends LivingEntity {
+  constructor() {
+    super();
+    this.name = 'Plant';
+    this.logic = (grid, x, y) => {
+      this.age++;
+      if (!this.alive) {
+        // Decay after 3-15 ticks
+        if (this.age >= randomBetween(12, 3)) grid.area[y][x].contains = null;
+        return;
+      }
+      // Every 5 ticks, grow
+      if (this.age % 5 === 0) {
+        const availableCells = grid.getAdjacentEmpty(x, y);
+        if (availableCells.length) availableCells[randomBetween(availableCells.length)].contains = new Plant();
+      }
+      // Die after 5-15 ticks
+      if (this.age >= randomBetween(10, 5)) {
+        this.alive = false;
+        this.age = 0;
+      }
+    };
+  }
+}
+
+class Animal extends LivingEntity {
+  constructor(life) {
+    super();
+    this.name = 'Animal';
+    this.food = 'Plant';
+    this.life = life;
+  }
+}
+
+class Herbivore extends Animal {
+  constructor(life) {
+    super();
+    this.life = life;
+    this.name = 'Herbivore';
+    this.logic = (grid, x, y) => {
+      if (!this.alive) return;
       console.groupCollapsed('Animal Thoughts');
       // Look for food
-      const foodSources = grid.getAdjacent(x, y).filter(cell => cell.hasOwnProperty('contains') && cell.contains !== null && cell.contains.name === self.food);
+      const foodSources = grid.getAdjacent(x, y).filter(cell => cell.hasOwnProperty('contains') && cell.contains !== null && cell.contains.name === this.food);
       if (foodSources.length) {
-        console.info('YAY FOOD: %i', self.life);
+        console.info('YAY FOOD: %i', this.life);
         const consume = foodSources[randomBetween(foodSources.length)];
-        self.life += consume.contains.alive ? 2 : 1;
-        grid.area[consume.y][consume.x].contains = null;
+        this.life += consume.contains.alive ? 2 : 1;
+        grid.setCellContent(consume.x, consume.y, null);
       }
-      if (self.life) {
+      if (this.life) {
         // Think about moving
         // filter out other animals, walls, and plants
         const adjacent = grid.getAdjacent(x, y).filter(cell => !cell.hasOwnProperty('contains') || cell.contains === null);
@@ -52,76 +110,61 @@ const entities = {
           console.info('I CAN MOVE TO: %o', adjacent);
           const destination = adjacent[randomBetween(adjacent.length)];
           console.info('GONNA MOVE TO: %o', destination);
-          grid.area[destination.y][destination.x].contains = self;
-          grid.area[y][x].contains = null;
-          self.life--;
+          grid.setCellContent(destination.x, destination.y, this);
+          grid.setCellContent(x, y, null);
+          this.life--;
         }
-        self.age++;
+        this.age++;
       } else {
         console.info('I HAVE DIED');
-        self.alive = false;
+        this.alive = false;
       }
       console.groupEnd('Animal Thoughts');
-    },
-  },
+    };
+  }
+}
 
-  plant: {
-    name: 'plant',
-    age: 0,
-    alive: true,
-    logic: (grid, self, x, y) => {
-      self.age++;
-      if (!self.alive) {
-        // Decay after 3-15 ticks
-        if (self.age >= randomBetween(12, 3)) grid.area[y][x].contains = null;
-        return;
-      }
-      // Every 5 ticks, grow
-      if (self.age % 5 === 0) {
-        const availableCells = grid.getAdjacentEmpty(x, y);
-        if (availableCells.length) availableCells[randomBetween(availableCells.length)].contains = Object.assign({}, entities.plant);
-      }
-      // Die after 5-15 ticks
-      if (self.age >= randomBetween(10, 5)) {
-        self.alive = false;
-        self.age = 0;
-      }
-    },
-  },
-
-  wall: {
-    name: 'wall',
-  },
+const entities = {
+  Terrain,
+  Herbivore,
+  Plant,
 };
 
 
-/* Grid functions TODO: turn into class */
+class Grid {
+  constructor(rows, columns) {
+    this.area = new Array(rows)
+      .fill(null, 0, rows)
+      .map(() => new Array(columns)
+        .fill(null, 0, columns)
+        .map(() => ({})));
+    this.pageGrid = document.getElementsByClassName('js-grid')[0];
+  }
 
-function Grid(rows, columns) {
-  this.area = new Array(rows)
-    .fill(null, 0, rows)
-    .map(() => new Array(columns)
-      .fill(null, 0, columns)
-      .map(() => ({})));
-  this.pageGrid = document.getElementsByClassName('js-grid')[0];
+  getCellContent(x, y) {
+    return this.area[y][x].hasOwnProperty('contains') ? this.area[y][x].contains : undefined;
+  }
 
+  setCellContent(x, y, content) {
+    this.area[y][x].contains = content;
+  }
 
-  this.isEmpty = (x, y) => {
+  isEmpty(x, y) {
     // Returns true if a given space is empty or false if not
     const target = this.area[y][x];
     return !(target.hasOwnProperty('contains') && target.contains);
-  };
+  }
 
-  this.getEmptyLength = () => {
+  getEmptyLength() {
     // Returns the number of empty cells left in the grid__cell
     return this.area.reduce((emptyCellCount, row) =>
       (emptyCellCount += row.reduce((emptyCells, cell) => {
         return (!cell.hasOwnProperty('contains') || cell.contains === null) ? ++emptyCells : emptyCells;
       }, 0)
     ), 0);
-  };
+  }
 
-  this.getAdjacent = (x, y) => {
+  getAdjacent(x, y) {
     const adjacentArray = [
       this.area[Math.max(y - 1, 0)][Math.max(x - 1, 0)],
       this.area[Math.max(y - 1, 0)][x],
@@ -133,9 +176,9 @@ function Grid(rows, columns) {
       this.area[Math.min(y + 1, this.area.length - 1)][Math.min(x + 1, this.area[0].length - 1)],
     ];
     return adjacentArray;
-  };
+  }
 
-  this.getAdjacentEmpty = (x, y) => {
+  getAdjacentEmpty(x, y) {
     const adjacentArray = [
       this.area[Math.max(y - 1, 0)][Math.max(x - 1, 0)],
       this.area[Math.max(y - 1, 0)][x],
@@ -147,9 +190,9 @@ function Grid(rows, columns) {
       this.area[Math.min(y + 1, this.area.length - 1)][Math.min(x + 1, this.area[0].length - 1)],
     ];
     return adjacentArray.filter(cell => !cell.hasOwnProperty('contains') || cell.contains === null);
-  };
+  }
 
-  this.getAllEmpty = () => {
+  getAllEmpty() {
     const availableSpaces = [];
     this.area.forEach(row => {
       row.forEach(cell => {
@@ -159,9 +202,9 @@ function Grid(rows, columns) {
       });
     });
     return availableSpaces;
-  };
+  }
 
-  this.getAllEntities = excludes => {
+  getAllEntities(excludes) {
     if (!excludes) excludes = [];
     const availableEntities = [];
     this.area.forEach(row => {
@@ -172,9 +215,9 @@ function Grid(rows, columns) {
       });
     });
     return availableEntities;
-  };
+  }
 
-  this.getRandomEmpty = () => {
+  getRandomEmpty() {
     // Returns a cell if a space is available
     // Returns false if not
     const availableSpaces = this.getAllEmpty();
@@ -184,9 +227,9 @@ function Grid(rows, columns) {
     const result = availableSpaces[randomBetween(availableSpaces.length)];
 
     return result;
-  };
+  }
 
-  this.setBoundary = entity => {
+  setBoundary() {
     this.area = this.area.map((row, rowIndex) => row.map((cell, cellIndex) => {
       cell.x = cellIndex;
       cell.y = rowIndex;
@@ -196,13 +239,13 @@ function Grid(rows, columns) {
         cellIndex === 0 ||
         cellIndex === row.length - 1
       ) {
-        cell.contains = entity;
+        cell.contains = new Terrain('wall');
       }
       return cell;
     }));
-  };
+  }
 
-  this.render = () => {
+  render() {
     while (this.pageGrid.hasChildNodes()) {
       this.pageGrid.removeChild(this.pageGrid.lastChild);
     }
@@ -215,14 +258,14 @@ function Grid(rows, columns) {
       });
       this.pageGrid.appendChild(pageGridRow);
     });
-  };
+  }
 
-  this.getEmptyPlot = placedEntities => {
+  getEmptyPlot(placedEntities) {
     const plot = this.getRandomEmpty();
     return (placedEntities.some(planted => planted.x === plot.x && planted.y === plot.y)) ? this.getEmptyPlot() : plot;
-  };
+  }
 
-  this.seedEntities = (entity, numberOfEntities) => {
+  seedEntities(entity, numberOfEntities, ...args) {
     const availableSpaces = this.getEmptyLength();
 
     if (numberOfEntities > availableSpaces) {
@@ -235,13 +278,13 @@ function Grid(rows, columns) {
 
     while (numberOfEntities--) {
       const plot = this.getEmptyPlot(placedEntities);
-      plot.contains = Object.assign({}, entity);
+      const MyEntity = entities[entity];
+      plot.contains = new MyEntity(...args);
       placedEntities.push(plot);
     }
     return true;
-  };
+  }
 
-  return this;
 }
 
 
@@ -256,53 +299,49 @@ function Grid(rows, columns) {
 ** second or so.
 */
 
-function Simulation(grid, entities) {
-  // Grid is a preset grid to simulate on
-  // Entities is an array of entity objects that contain a name, and logic function
-  this.grid = grid;
-  this.entities = entities;
-  this.ticks = 1;
+class Simulation {
+  constructor(grid) {
+    this.grid = grid;
+    this.ticks = 1;
+    this.tick = () => {
+      console.groupCollapsed('Simulation Tick: %i', this.ticks);
+      const currentEntities = this.grid
+        .getAllEntities(['Wall'])
+        // no-nested-ternary and no-confusing-arrow can bite me. It's a shorthanded property sort.
+        .sort((a, b) => (a.contains.name < b.contains.name) ? -1 : (a.contains.name > b.contains.name) ? 1 : 0);
+      currentEntities.forEach(entity => {
+        if (entity.contains === null) return console.info('ENTITY MISSING');
+        console.log('Entity: %s found: %o', entity.contains.name, entity);
+        if (entity.contains.hasOwnProperty('logic')) {
+          console.log('Logic Found');
+          entity.contains.logic(this.grid, entity.x, entity.y);
+        }
+      });
+      console.groupEnd('Simulation Tick: %i', this.ticks);
+      this.grid.render();
+      this.renderStats();
+      this.ticks++;
+    };
 
-  this.tick = () => {
-    console.groupCollapsed('Simulation Tick: %i', this.ticks);
-    const currentEntities = this.grid
-      .getAllEntities(['wall'])
-      // no-nested-ternary and no-confusing-arrow can bite me. It's a shorthanded property sort.
-      .sort((a, b) => (a.contains.name < b.contains.name) ? -1 : (a.contains.name > b.contains.name) ? 1 : 0);
-    currentEntities.forEach(entity => {
-      if (entity.contains === null) return console.info('ENTITY MISSING');
-      console.log('Entity: %s found: %o', entity.contains.name, entity);
-      if (entity.contains.hasOwnProperty('logic')) {
-        console.log('Logic Found');
-        entity.contains.logic(this.grid, entity.contains, entity.x, entity.y);
+    this.live = async (steps, ms) => {
+      while (steps--) {
+        this.tick();
+        if (this.grid.getAllEntities(['Wall', 'Plant']).filter(e => e.contains.alive).length) await sleep(ms);
+        else {
+          steps = 0;
+          console.warn('Simulation has ended after %i ticks. All entities are dead.', --this.ticks);
+        }
       }
-    });
-    console.groupEnd('Simulation Tick: %i', this.ticks);
+    };
+
+    this.renderStats = () => {
+      const tickCounter = document.getElementsByClassName('js-ticks')[0];
+      tickCounter.innerHTML = this.ticks;
+    };
+
     this.grid.render();
     this.renderStats();
-    this.ticks++;
-  };
-
-  this.live = async steps => {
-    while (steps--) {
-      this.tick();
-      if (this.grid.getAllEntities(['wall', 'plant']).filter(e => e.contains.alive).length) await sleep(50);
-      else {
-        steps = 0;
-        console.warn('Simulation has ended after %i ticks. All entities are dead.', --this.ticks);
-      }
-    }
-  };
-
-  this.renderStats = () => {
-    const tickCounter = document.getElementsByClassName('js-ticks')[0];
-    tickCounter.innerHTML = this.ticks;
-  };
-
-  this.grid.render();
-  this.renderStats();
-
-  return this;
+  }
 }
 
 
@@ -314,7 +353,7 @@ console.groupCollapsed('Grid Testing');
 console.log(grid.area);
 console.log(grid.isEmpty(0, 0));
 
-grid.setBoundary(entities.wall);
+grid.setBoundary();
 
 console.log(grid.area);
 console.log(grid.isEmpty(1, 1));
@@ -322,12 +361,12 @@ console.groupEnd('Grid Testing');
 
 
 console.groupCollapsed('Entity Seeding');
-grid.seedEntities(entities.animal, 10);
-grid.seedEntities(entities.plant, 50);
-console.log('Found Entities on Grid: %o', grid.getAllEntities(['wall']));
+grid.seedEntities('Herbivore', 10, 10);
+grid.seedEntities('Plant', 50);
+console.log('Found Entities on Grid: %o', grid.getAllEntities(['Wall']));
 console.groupEnd('Entity Seeding');
 
 
-const mySimulation = new Simulation(grid, entities);
+const mySimulation = new Simulation(grid);
 // ~5 second simulation - Each tick is 50ms
-mySimulation.live(100);
+mySimulation.live(100, 50);

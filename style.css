@@ -7,10 +7,6 @@
   flex-direction: column;
 }
 
-/*.grid {
-
-}*/
-
 .grid__cell {
   width: 2vh;
   height: 2vh;
@@ -21,11 +17,11 @@
   background-color: black;
 }
 
-.grid .animal {
+.grid .Herbivore {
   background-color: yellow;
 }
 
-.grid .animal.dead {
+.grid .Herbivore.dead {
   background-color: brown;
 }
 
