@@ -1,15 +1,13 @@
 /* Turn off annoying eslint rules that don't apply here */
 
-/* eslint no-prototype-builtins: 0 */
-/* eslint no-console: 0 */
-/* eslint no-plusplus: 0 */
+/* eslint no-prototype-builtins: 0 */ // <== This one I don't actually get at all...
+/* eslint no-console: 0 */ // <== Buggy personal project, it's gonna have console logs.
+/* eslint no-plusplus: 0 */ // <== Frankly this one is just dumb anyways. I get the logic, but I disagree.
 
-/* eslint no-confusing-arrow: 0 */
-/* eslint no-nested-ternary: 0 */
+/* eslint no-confusing-arrow: 0 */ // <== These two are turned off for a sort function I did.
+/* eslint no-nested-ternary: 0 */ //      I really don't like those red squigglies.
 
-/* For some reason `document` isn't recognized as a global */
-
-/* global document */
+/* global document */ // <== For some reason `document` isn't recognized as a global
 
 
 
@@ -124,11 +122,8 @@ class Herbivore extends Animal {
   }
 }
 
-const entities = {
-  Terrain,
-  Herbivore,
-  Plant,
-};
+// Look up table is required for programmatically new'ing the classes
+const entities = { Terrain, Herbivore, Plant };
 
 
 class Grid {
@@ -239,7 +234,7 @@ class Grid {
         cellIndex === 0 ||
         cellIndex === row.length - 1
       ) {
-        cell.contains = new Terrain('wall');
+        cell.contains = new Terrain('Wall');
       }
       return cell;
     }));
@@ -347,7 +342,7 @@ class Simulation {
 
 /* Put everything to use */
 
-const grid = new Grid(20, 20);
+const grid = new Grid(40, 40);
 
 console.groupCollapsed('Grid Testing');
 console.log(grid.area);
@@ -361,8 +356,8 @@ console.groupEnd('Grid Testing');
 
 
 console.groupCollapsed('Entity Seeding');
-grid.seedEntities('Herbivore', 10, 10);
-grid.seedEntities('Plant', 50);
+grid.seedEntities('Herbivore', 20, 10);
+grid.seedEntities('Plant', 100);
 console.log('Found Entities on Grid: %o', grid.getAllEntities(['Wall']));
 console.groupEnd('Entity Seeding');
 
