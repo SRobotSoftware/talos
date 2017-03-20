@@ -136,22 +136,42 @@ class Grid {
     this.pageGrid = document.getElementsByClassName('js-grid')[0];
   }
 
+  /**
+   * Returns the contained entity on a given x, y coordinate
+   * @returns {entity} The entity contained within the cell
+   * @param {number} x A valid X location
+   * @param {number} y A valid Y location
+   */
   getCellContent(x, y) {
     return this.area[y][x].hasOwnProperty('contains') ? this.area[y][x].contains : undefined;
   }
 
+  /**
+   * Sets the given cell's content to the entity specified
+   * @param {number} x A valid X location
+   * @param {number} y A valid Y location
+   * @param {entity} content An entity
+   */
   setCellContent(x, y, content) {
     this.area[y][x].contains = content;
   }
 
+  /**
+   * Checks if cell is empty
+   * @returns {boolean} Cell does not contain entity
+   * @param {number} x A valid X location
+   * @param {number} y A valid Y location
+   */
   isEmpty(x, y) {
     // Returns true if a given space is empty or false if not
     const target = this.area[y][x];
     return !(target.hasOwnProperty('contains') && target.contains);
   }
 
+  /**
+   * @returns {number} Empty cells left in grid
+   */
   getEmptyLength() {
-    // Returns the number of empty cells left in the grid__cell
     return this.area.reduce((emptyCellCount, row) =>
       (emptyCellCount += row.reduce((emptyCells, cell) => {
         return (!cell.hasOwnProperty('contains') || cell.contains === null) ? ++emptyCells : emptyCells;
@@ -159,6 +179,11 @@ class Grid {
     ), 0);
   }
 
+  /**
+   * @returns {array} An array of adjacent cells
+   * @param {number} x A valid X location
+   * @param {number} y A valid Y location
+   */
   getAdjacent(x, y) {
     const adjacentArray = [
       this.area[Math.max(y - 1, 0)][Math.max(x - 1, 0)],
@@ -173,6 +198,11 @@ class Grid {
     return adjacentArray;
   }
 
+  /**
+   * @returns {array} An array of adjacent cells that do not contain an entity
+   * @param {number} x A valid X location
+   * @param {number} y A valid Y location
+   */
   getAdjacentEmpty(x, y) {
     const adjacentArray = [
       this.area[Math.max(y - 1, 0)][Math.max(x - 1, 0)],
@@ -187,6 +217,9 @@ class Grid {
     return adjacentArray.filter(cell => !cell.hasOwnProperty('contains') || cell.contains === null);
   }
 
+  /**
+   * @returns {array} An array of all empty cells in the grid
+   */
   getAllEmpty() {
     const availableSpaces = [];
     this.area.forEach(row => {
@@ -199,6 +232,10 @@ class Grid {
     return availableSpaces;
   }
 
+  /**
+   * @returns {array} An array of entities contained on the grid
+   * @param {array} excludes An array of strings of entity names to exclude
+   */
   getAllEntities(excludes) {
     if (!excludes) excludes = [];
     const availableEntities = [];
@@ -212,6 +249,9 @@ class Grid {
     return availableEntities;
   }
 
+  /**
+   * @returns {object} A random empty cell from the grid
+   */
   getRandomEmpty() {
     // Returns a cell if a space is available
     // Returns false if not
@@ -224,6 +264,9 @@ class Grid {
     return result;
   }
 
+  /**
+   * Sets the boundaries of the grid to walls
+   */
   setBoundary() {
     this.area = this.area.map((row, rowIndex) => row.map((cell, cellIndex) => {
       cell.x = cellIndex;
@@ -240,6 +283,9 @@ class Grid {
     }));
   }
 
+  /**
+   * Hooks into the html and renders the current state of the grid
+   */
   render() {
     while (this.pageGrid.hasChildNodes()) {
       this.pageGrid.removeChild(this.pageGrid.lastChild);
@@ -310,11 +356,21 @@ class Grid {
     });
   }
 
+  /**
+   * @returns {object} An empty cell that isn't part of the input array
+   * @param {array} placedEntities An array of previously placed entities
+   */
   getEmptyPlot(placedEntities) {
     const plot = this.getRandomEmpty();
     return (placedEntities.some(planted => planted.x === plot.x && planted.y === plot.y)) ? this.getEmptyPlot() : plot;
   }
 
+  /**
+   * Seeds entities across the map
+   * @param {entity} entity An entity to seed
+   * @param {number} numberOfEntities The number of entities to seed
+   * @param {*} args Arguments to pass to the entity constructor
+   */
   seedEntities(entity, numberOfEntities, ...args) {
     const availableSpaces = this.getEmptyLength();
 
