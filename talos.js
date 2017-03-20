@@ -9,21 +9,22 @@
 
 /* Utility Functions */
 
-/**
- * Sleep function that effectively pauses the code for ms milliseconds.
- * @param {number} ms Number of milliseconds to sleep
- */
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+class Utility {
+  /**
+   * Sleep function that effectively pauses the code for ms milliseconds.
+   * @param {number} ms Number of milliseconds to sleep
+   */
+  static sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-/**
- * Function to choose a number psuedorandomly between minimum and maximum.
- * @param {number} max Maximum - inclusive
- * @param {number} min Minimum - inclusive
- */
-function randomBetween(max = 1, min = 0) {
-  return Math.floor(Math.random() * max) + min;
+  /**
+   * Function to choose a number psuedorandomly between minimum and maximum.
+   * @return {number} A number between Minimum and Maximum
+   * @param {number} max Maximum - inclusive
+   * @param {number} min Minimum - inclusive
+   */
+  static randomBetween(max = 1, min = 0) {
+    return Math.floor(Math.random() * max) + min;
+  }
 }
 
 
@@ -54,16 +55,16 @@ class Plant extends LivingEntity {
       this.age++;
       if (!this.alive) {
         // Decay after 3-15 ticks
-        if (this.age >= randomBetween(12, 3)) grid.area[y][x].contains = null;
+        if (this.age >= Utility.randomBetween(12, 3)) grid.area[y][x].contains = null;
         return;
       }
       // Every 5 ticks, grow
       if (this.age % 5 === 0) {
         const availableCells = grid.getAdjacentEmpty(x, y);
-        if (availableCells.length) availableCells[randomBetween(availableCells.length)].contains = new Plant();
+        if (availableCells.length) availableCells[Utility.randomBetween(availableCells.length)].contains = new Plant();
       }
       // Die after 5-15 ticks
-      if (this.age >= randomBetween(10, 5)) {
+      if (this.age >= Utility.randomBetween(10, 5)) {
         this.alive = false;
         this.age = 0;
       }
@@ -92,7 +93,7 @@ class Herbivore extends Animal {
       const foodSources = grid.getAdjacent(x, y).filter(cell => cell.hasOwnProperty('contains') && cell.contains !== null && cell.contains.name === this.food);
       if (foodSources.length) {
         console.info('YAY FOOD: %i', this.life);
-        const consume = foodSources[randomBetween(foodSources.length)];
+        const consume = foodSources[Utility.randomBetween(foodSources.length)];
         this.life += consume.contains.alive ? 2 : 1;
         grid.setCellContent(consume.x, consume.y, null);
       }
@@ -102,7 +103,7 @@ class Herbivore extends Animal {
         const adjacent = grid.getAdjacent(x, y).filter(cell => !cell.hasOwnProperty('contains') || cell.contains === null);
         if (adjacent.length) {
           console.info('I CAN MOVE TO: %o', adjacent);
-          const destination = adjacent[randomBetween(adjacent.length)];
+          const destination = adjacent[Utility.randomBetween(adjacent.length)];
           console.info('GONNA MOVE TO: %o', destination);
           grid.setCellContent(destination.x, destination.y, this);
           grid.setCellContent(x, y, null);
@@ -255,7 +256,7 @@ class Grid {
 
     if (availableSpaces.length === 0) return false;
 
-    const result = availableSpaces[randomBetween(availableSpaces.length)];
+    const result = availableSpaces[Utility.randomBetween(availableSpaces.length)];
 
     return result;
   }
@@ -428,7 +429,7 @@ class Simulation {
     this.live = async (steps, ms) => {
       while (steps--) {
         this.tick();
-        if (this.grid.getAllEntities(['Wall', 'Plant']).filter(e => e.contains.alive).length) await sleep(ms);
+        if (this.grid.getAllEntities(['Wall', 'Plant']).filter(e => e.contains.alive).length) await Utility.sleep(ms);
         else {
           steps = 0;
           console.warn('Simulation has ended after %i ticks. All entities are dead.', --this.ticks);
