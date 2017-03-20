@@ -1,14 +1,10 @@
 /* Turn off annoying eslint rules that don't apply here */
-
-/* eslint no-prototype-builtins: 0 */ // <== This one I don't actually get at all...
 /* eslint no-console: 0 */ // <== Buggy personal project, it's gonna have console logs.
-/* eslint no-plusplus: 0 */ // <== Frankly this one is just dumb anyways. I get the logic, but I disagree.
-
 /* eslint no-confusing-arrow: 0 */ // <== These two are turned off for a sort function I did.
 /* eslint no-nested-ternary: 0 */ //      I really don't like those red squigglies.
-
+/* eslint no-plusplus: 0 */ // <== Frankly this one is just dumb anyways. I get the logic, but I disagree.
+/* eslint no-prototype-builtins: 0 */ // <== This one I don't actually get at all...
 /* global document */ // <== For some reason `document` isn't recognized as a global
-
 
 
 /* Utility Functions */
