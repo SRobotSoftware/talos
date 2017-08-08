@@ -4,7 +4,7 @@
   "description": "Artificial Life Simulation",
   "main": "talos.js",
   "repository": "git@github.com:Zmixon/talos.git",
-  "author": "Zachary Mixon <zmixon@vynyl.com>",
+  "author": "Zachary Mixon <zmixon91@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "eslint": "^3.14.1",

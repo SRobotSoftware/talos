@@ -1,6 +1,5 @@
-## Quarter 1 PDP: Talos
+## Talos
 ### Zachary Mixon
-#### Lead: Andy Wendt
 ---
 
 The purpose of this project is to demonstrate the use of Prototypical inheritance and its applications within JavaScript, to catalyze better design decisions and facilitate easier, more efficient solutions to programming challenges.
